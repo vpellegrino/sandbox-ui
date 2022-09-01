@@ -7,7 +7,6 @@ import {
   Button,
   EmptyState,
   EmptyStateIcon,
-  TabContent,
   Title,
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
@@ -214,14 +213,12 @@ export const ProcessorsTabContent = ({
           </EmptyState>
         </TableWithPagination>
       ) : (
-        <TabContent id="instance-skeleton__page__tabs-processors">
-          <TableWithPaginationSkeleton
-            hasActionColumn={true}
-            columns={processorsOverviewColumns}
-            totalRows={currentPageSize}
-            customToolbarElement={customToolbarElement}
-          />
-        </TabContent>
+        <TableWithPaginationSkeleton
+          hasActionColumn={true}
+          columns={processorsOverviewColumns}
+          totalRows={currentPageSize}
+          customToolbarElement={customToolbarElement}
+        />
       )}
       <DeleteProcessor
         bridgeId={instanceId}

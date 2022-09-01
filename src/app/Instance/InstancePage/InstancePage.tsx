@@ -8,17 +8,25 @@ import {
   DropdownPosition,
   DropdownSeparator,
   DropdownToggle,
+  Nav,
+  NavItem,
+  NavList,
   PageSection,
   PageSectionVariants,
   Split,
   SplitItem,
-  Tab,
-  Tabs,
-  TabTitleText,
   Text,
   TextContent,
 } from "@patternfly/react-core";
-import { useHistory, useParams } from "react-router-dom";
+import {
+  NavLink,
+  Redirect,
+  Route,
+  Switch,
+  useHistory,
+  useParams,
+  useRouteMatch,
+} from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Breadcrumb } from "@app/components/Breadcrumb/Breadcrumb";
 import { CaretDownIcon } from "@patternfly/react-icons";
@@ -39,25 +47,15 @@ import { ErrorWithDetail } from "../../../types/Error";
 import { ProcessorsTabContent } from "@app/Instance/InstancePage/ProcessorsTabContent";
 import { ErrorHandlingTabContent } from "@app/Instance/InstancePage/ErrorHandlingTabContent";
 
-const INSTANCE_PAGE_TAB_KEYS = {
-  processors: 0,
-  "error-handling": 1,
-};
-
 export interface InstanceRouteParams {
   instanceId: string;
-  tabName?: keyof typeof INSTANCE_PAGE_TAB_KEYS;
 }
 
 const InstancePage = (): JSX.Element => {
-  const { instanceId, tabName = "processors" } =
-    useParams<InstanceRouteParams>();
+  const { instanceId } = useParams<InstanceRouteParams>();
   const { t } = useTranslation(["openbridgeTempDictionary"]);
   const history = useHistory();
 
-  const [activeTabKey, setActiveTabKey] = useState<number | string>(
-    INSTANCE_PAGE_TAB_KEYS[tabName]
-  );
   const [isDropdownActionOpen, setIsDropdownActionOpen] =
     useState<boolean>(false);
   const [showInstanceDrawer, setShowInstanceDrawer] = useState<boolean>(false);
@@ -110,21 +108,6 @@ const InstancePage = (): JSX.Element => {
     }
   }, [bridgeError, getPageTitle, history, t]);
 
-  const handleTabClick = (
-    _: React.MouseEvent<HTMLElement, MouseEvent>,
-    tabNumber: number | string
-  ): void => {
-    setActiveTabKey(tabNumber);
-
-    const selectedTabName =
-      Object.keys(INSTANCE_PAGE_TAB_KEYS).find(
-        (tabName) =>
-          (INSTANCE_PAGE_TAB_KEYS as { [tabName: string]: number })[tabName] ===
-          (tabNumber as number)
-      ) ?? "";
-    history.push(`/instance/${instanceId}/${selectedTabName}`);
-  };
-
   const [showInstanceDeleteModal, setShowInstanceDeleteModal] = useState(false);
 
   const deleteInstance = (): void => {
@@ -135,6 +118,13 @@ const InstancePage = (): JSX.Element => {
     setShowInstanceDeleteModal(false);
     history.push(`/`);
   }, [history]);
+
+  const { path, url } = useRouteMatch();
+
+  const navItems = [
+    { url: "processors", label: t("common.processors") },
+    { url: "error-handling", label: t("common.errorHandling") },
+  ];
 
   return (
     <Drawer isExpanded={showInstanceDrawer}>
@@ -224,49 +214,50 @@ const InstancePage = (): JSX.Element => {
             </PageSection>
           </>
         )}
-        <PageSection variant={PageSectionVariants.light} type="tabs">
-          <Tabs
-            mountOnEnter
-            unmountOnExit
-            className="instance-page__tabs"
-            ouiaId="instance-details"
-            usePageInsets
-            activeKey={activeTabKey}
-            onSelect={handleTabClick}
-          >
-            <Tab
-              eventKey={INSTANCE_PAGE_TAB_KEYS.processors}
-              ouiaId="processors"
-              tabContentId="instance-page__tabs-processors"
-              title={<TabTitleText>{t("common.processors")}</TabTitleText>}
-            >
-              <PageSection>
-                <ProcessorsTabContent
-                  instanceId={instanceId}
-                  pageTitle={getPageTitle(bridge)}
-                />
-              </PageSection>
-            </Tab>
-            <Tab
-              eventKey={INSTANCE_PAGE_TAB_KEYS["error-handling"]}
-              ouiaId="error-handling"
-              tabContentId="instance-page__tabs-error-handling"
-              title={<TabTitleText>{t("common.errorHandling")}</TabTitleText>}
-            >
-              <PageSection>
-                <ErrorHandlingTabContent
-                  isBridgeLoading={isBridgeLoading}
-                  errorHandlingType={bridge?.error_handler?.type}
-                  errorHandlingParameters={
-                    bridge?.error_handler?.parameters as {
-                      [p: string]: unknown;
-                    }
-                  }
-                />
-              </PageSection>
-            </Tab>
-          </Tabs>
+        <PageSection type="nav" style={{ paddingTop: 0 }}>
+          {bridge && (
+            <Nav variant="tertiary" aria-label="Instance navigation">
+              <NavList>
+                {navItems.map((route, index) => (
+                  <NavItem
+                    key={index}
+                    isActive={location.pathname.endsWith(`${url}/${route.url}`)}
+                    component={"span"}
+                    ouiaId={route.url}
+                  >
+                    <NavLink to={`${url}/${route.url}`}>{route.label}</NavLink>
+                  </NavItem>
+                ))}
+              </NavList>
+            </Nav>
+          )}
         </PageSection>
+        <Switch>
+          <Route exact path={`${path}`}>
+            <Redirect to={`${url}/processors`} />
+          </Route>
+          <Route path={`${path}/processors`}>
+            <PageSection>
+              <ProcessorsTabContent
+                instanceId={instanceId}
+                pageTitle={getPageTitle(bridge)}
+              />
+            </PageSection>
+          </Route>
+          <Route path={`${path}/error-handling`}>
+            <PageSection>
+              <ErrorHandlingTabContent
+                isBridgeLoading={isBridgeLoading}
+                errorHandlingType={bridge?.error_handler?.type}
+                errorHandlingParameters={
+                  bridge?.error_handler?.parameters as {
+                    [p: string]: unknown;
+                  }
+                }
+              />
+            </PageSection>
+          </Route>
+        </Switch>
         <DeleteInstance
           instanceId={bridge?.id}
           instanceName={bridge?.name}
