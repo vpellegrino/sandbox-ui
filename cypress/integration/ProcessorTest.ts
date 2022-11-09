@@ -232,6 +232,17 @@ onlyOn(isEnvironmentType(EnvType.Mocked), () => {
       });
     });
 
+    describe("Processors of failed SE Instance", () => {
+      beforeEach(() => {
+        cy.visit("/instance/04f131c3-b34c-4ee2-b153-fbff0bb91ece");
+        pageWasLoaded();
+      });
+
+      it("Create processor is disabled", () => {
+        cy.ouiaId("create-processor", "PF4/Button").should("be.disabled");
+      });
+    });
+
     describe("Edit Sink Processors", () => {
       let processorName: string;
       let transformation: string;
