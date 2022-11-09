@@ -12,7 +12,7 @@ import {
   Title,
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IAction, IRow, IRowData } from "@patternfly/react-table";
 import {
   BridgeResponse,
@@ -137,19 +137,34 @@ export const ProcessorsTabContent = ({
     error: processorsError,
   } = useGetProcessorsApi();
 
-  const customToolbarElement = areProcessorsLoading ? (
-    <Skeleton width={"170px"} height={"35px"} />
-  ) : bridgeStatus == ManagedResourceStatus.Failed ? (
-    <Button ouiaId="create-processor" variant="primary" isDisabled={true}>
-      {t("processor.createProcessor")}
-    </Button>
-  ) : (
-    <Link to={`/instance/${instanceId}/create-processor`}>
-      <Button ouiaId="create-processor" variant="primary">
+  const customToolbarElement = useMemo(() => {
+    const processorCreationDisabled =
+      bridgeStatus != ManagedResourceStatus.Ready;
+
+    const createProcessorButton = (
+      <Button
+        ouiaId="create-processor"
+        variant="primary"
+        isDisabled={processorCreationDisabled}
+      >
         {t("processor.createProcessor")}
       </Button>
-    </Link>
-  );
+    );
+
+    const createProcessorSection = processorCreationDisabled ? (
+      createProcessorButton
+    ) : (
+      <Link to={`/instance/${instanceId}/create-processor`}>
+        {createProcessorButton}
+      </Link>
+    );
+
+    return areProcessorsLoading ? (
+      <Skeleton width={"170px"} height={"35px"} />
+    ) : (
+      createProcessorSection
+    );
+  }, [areProcessorsLoading, bridgeStatus, instanceId, t]);
 
   const triggerGetProcessors = useCallback(
     (): void =>
